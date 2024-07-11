@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  email    String   @unique
+  isAdmin  Boolean
+  password String
+
+  brokerName String?
+  phoneNumber String?
+  investmentGoal Int?
+  riskTakingCapacity  riskTakingCapacityTypes?
+  investments Investment[]
+
+  clientConsultingCalls consultingCalls[] @relation("ClientConsultingCalls")
+  interviewerConsultingCalls consultingCalls[] @relation("InterviewerConsultingCalls")
+
+  queriesCreated QueryTracking[] @relation("queryTracking")
+}
+
+enum riskTakingCapacityTypes {
+  low 
+  medium
+  high
+  veryHigh
+}
+
+model Investment{
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  amount Int
+  transactionDate DateTime @default(now())
+  transactionType investmentTypeEnum 
+
+  status TransactionStatus
+  approvalNote String?
+  rejectionNote String?
+
+  updatedAt DateTime?
+
+  client  User @relation(fields: [clientId],references: [id])
+  clientId String @db.ObjectId
+}
+
+enum TransactionStatus {
+  pending  
+  approved
+  rejected
+}
+
+enum investmentTypeEnum {
+  Trading 
+  Investment
+}
+
+// consulting calls
+model consultingCalls {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+
+  client       User   @relation("ClientConsultingCalls", fields: [clientId], references: [id])
+  clientId  String  @db.ObjectId
+  
+  interviewer       User   @relation("InterviewerConsultingCalls", fields: [interviwerId], references: [id])
+  interviwerId  String @db.ObjectId
+
+  docLink String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime?
+}
+
+
+// query tracking 
+model QueryTracking {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  subject String
+  createdAt DateTime @default(now())
+
+  // client linking
+  createdBy       User   @relation("queryTracking", fields: [createdById], references: [id])
+  createdById  String  @db.ObjectId
+
+
+  queryStatus QueryStatus
+}
+
+enum QueryStatus {
+  Raised
+  InProcess
+  Resolved
+  Rejected
+}
